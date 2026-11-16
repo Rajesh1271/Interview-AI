@@ -3,6 +3,13 @@ const { z } = require("zod")
 const { zodToJsonSchema } = require("zod-to-json-schema")
 const puppeteer = require("puppeteer")
 
+function getJsonSchema(schema) {
+    if (typeof z.toJSONSchema === "function") {
+        return z.toJSONSchema(schema)
+    }
+    return zodToJsonSchema(schema)
+}
+
 const ai = new GoogleGenAI({
     apiKey: process.env.GOOGLE_GENAI_API_KEY
 })
@@ -32,6 +39,37 @@ const interviewReportSchema = z.object({
     title: z.string().describe("The title of the job for which the interview report is generated"),
 })
 
+const FALLBACK_MODELS = [
+    "gemini-3.5-flash-lite",
+    "gemini-3.1-flash-lite",
+    "gemini-4-hydrogen",
+]
+
+async function generateWithFallback(options, models = FALLBACK_MODELS) {
+    let lastError = null
+    for (const model of models) {
+        for (let attempt = 1; attempt <= 2; attempt++) {
+            try {
+                return await ai.models.generateContent({
+                    ...options,
+                    model
+                })
+            } catch (err) {
+                lastError = err
+                const isTransient = err.status === 503 || err.status === 429 || (err.message && (err.message.includes("503") || err.message.includes("high demand") || err.message.includes("RESOURCE_EXHAUSTED") || err.message.includes("UNAVAILABLE")))
+                if (isTransient && attempt === 1) {
+                    console.warn(`[Gemini API] ${model} busy/high demand (503). Retrying in 1.5s...`)
+                    await new Promise(resolve => setTimeout(resolve, 1500))
+                    continue
+                }
+                console.warn(`[Gemini API] Failed with model ${model}: ${err.message || err.status}. Trying next model...`)
+                break
+            }
+        }
+    }
+    throw lastError
+}
+
 async function generateInterviewReport({ resume, selfDescription, jobDescription }) {
 
 
@@ -41,12 +79,11 @@ async function generateInterviewReport({ resume, selfDescription, jobDescription
                         Job Description: ${jobDescription}
 `
 
-    const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash-lite-preview",
+    const response = await generateWithFallback({
         contents: prompt,
         config: {
             responseMimeType: "application/json",
-            responseSchema: zodToJsonSchema(interviewReportSchema),
+            responseSchema: getJsonSchema(interviewReportSchema),
         }
     })
 
@@ -95,12 +132,11 @@ async function generateResumePdf({ resume, selfDescription, jobDescription }) {
                         The resume should not be so lengthy, it should ideally be 1-2 pages long when converted to PDF. Focus on quality rather than quantity and make sure to include all the relevant information that can increase the candidate's chances of getting an interview call for the given job description.
                     `
 
-    const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash-lite-preview",
+    const response = await generateWithFallback({
         contents: prompt,
         config: {
             responseMimeType: "application/json",
-            responseSchema: zodToJsonSchema(resumePdfSchema),
+            responseSchema: getJsonSchema(resumePdfSchema),
         }
     })
 
