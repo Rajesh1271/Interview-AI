@@ -197,6 +197,74 @@ $font-stack:     system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Robot
     margin-bottom: 0.25rem;
 }
 
+// ── Dropzone Keyframe Animations ──────────────────────────────────────────────
+@keyframes floatIcon {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-5px);
+    }
+}
+
+@keyframes pulseGlow {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba($accent, 0);
+        border-color: $border-color;
+    }
+    50% {
+        box-shadow: 0 0 18px 2px rgba($accent, 0.15);
+        border-color: rgba($accent, 0.5);
+    }
+}
+
+@keyframes bounceIcon {
+    0%, 100% {
+        transform: translateY(0) scale(1.08);
+    }
+    50% {
+        transform: translateY(-8px) scale(1.18);
+    }
+}
+
+@keyframes spinIndicator {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes successBounce {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+    60% {
+        transform: scale(1.2);
+    }
+    80% {
+        transform: scale(0.92);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes shakeError {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    15%, 45%, 75% {
+        transform: translateX(-6px);
+    }
+    30%, 60%, 90% {
+        transform: translateX(6px);
+    }
+}
+
 // ── Dropzone ──────────────────────────────────────────────────────────────────
 .upload-section {
     display: flex;
@@ -211,20 +279,143 @@ $font-stack:     system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Robot
     justify-content: center;
     gap: 0.35rem;
     padding: 1.5rem 1rem;
+    min-height: 145px;
     background-color: $bg-input;
     border: 2px dashed $border-color;
     border-radius: 0.6rem;
     cursor: pointer;
-    transition: border-color 0.2s, background-color 0.2s;
+    box-sizing: border-box;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.25s ease, border-color 0.25s ease, background-color 0.25s ease, box-shadow 0.25s ease;
 
+    // Hover effect
     &:hover {
+        transform: translateY(-2px);
         border-color: $accent;
         background-color: rgba($accent, 0.05);
+        box-shadow: 0 6px 20px rgba($accent, 0.15);
     }
 
+    // 1. Idle state
+    &--idle {
+        animation: pulseGlow 3s ease-in-out infinite;
+
+        .dropzone__icon--floating {
+            animation: floatIcon 2.6s ease-in-out infinite;
+        }
+    }
+
+    // 2. Drag & Drop state
+    &--dragging {
+        transform: scale(1.02);
+        border-color: $accent !important;
+        background-color: rgba($accent, 0.1) !important;
+        box-shadow: 0 0 24px 2px rgba($accent, 0.25) !important;
+        animation: none;
+
+        * {
+            pointer-events: none;
+        }
+
+        .dropzone__icon--bounce {
+            color: $accent-alt;
+            animation: bounceIcon 0.8s ease-in-out infinite;
+        }
+
+        .dropzone__title--highlight {
+            color: #fff;
+            font-weight: 600;
+            text-shadow: 0 0 10px rgba($accent, 0.5);
+        }
+    }
+
+    // 3. Uploading state
+    &--uploading {
+        border-color: rgba($accent, 0.55);
+        background-color: rgba($accent, 0.04);
+        box-shadow: 0 0 16px rgba($accent, 0.12);
+        cursor: default;
+
+        .dropzone__spinner {
+            color: $accent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 0.25rem;
+            animation: spinIndicator 0.85s linear infinite;
+        }
+    }
+
+    // 4. Success state
+    &--success {
+        border-color: #3fb950;
+        background-color: rgba(63, 185, 80, 0.06);
+        box-shadow: 0 0 20px rgba(63, 185, 80, 0.18);
+        animation: none;
+
+        &:hover {
+            border-color: #3fb950;
+            background-color: rgba(63, 185, 80, 0.09);
+            box-shadow: 0 6px 22px rgba(63, 185, 80, 0.25);
+        }
+
+        .dropzone__success-icon {
+            color: #3fb950;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 0.25rem;
+            animation: successBounce 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .dropzone__success-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #3fb950;
+            margin: 0;
+        }
+    }
+
+    // 5. Error state
+    &--error {
+        border-color: #ff4d4d;
+        background-color: rgba(255, 77, 77, 0.06);
+        box-shadow: 0 0 18px rgba(255, 77, 77, 0.2);
+        animation: shakeError 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+
+        &:hover {
+            border-color: #ff4d4d;
+            background-color: rgba(255, 77, 77, 0.09);
+            box-shadow: 0 6px 20px rgba(255, 77, 77, 0.25);
+        }
+
+        .dropzone__error-icon {
+            color: #ff4d4d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 0.25rem;
+        }
+
+        .dropzone__error-msg {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #ff4d4d;
+            text-align: center;
+            margin: 0;
+            max-width: 290px;
+            line-height: 1.4;
+        }
+    }
+
+    // Child elements
     &__icon {
         color: $accent;
         margin-bottom: 0.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
     &__title {
@@ -232,12 +423,109 @@ $font-stack:     system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Robot
         font-weight: 500;
         color: $text-primary;
         margin: 0;
+        transition: color 0.2s ease;
     }
 
     &__subtitle {
         font-size: 0.75rem;
         color: $text-muted;
         margin: 0;
+    }
+
+    // Upload progress bar
+    &__progress-wrap {
+        width: 100%;
+        max-width: 260px;
+        height: 6px;
+        background-color: rgba($border-color, 0.9);
+        border-radius: 999px;
+        overflow: hidden;
+        margin-top: 0.4rem;
+        position: relative;
+    }
+
+    &__progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, $accent 0%, $accent-alt 100%);
+        border-radius: 999px;
+        transition: width 0.15s ease-out;
+        box-shadow: 0 0 10px rgba($accent, 0.5);
+    }
+
+    &__progress-text {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: $accent-alt;
+        margin-top: 0.2rem;
+    }
+
+    // File info presentation
+    &__file-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        background-color: rgba($bg-page, 0.7);
+        border: 1px solid rgba($border-color, 0.9);
+        padding: 0.3rem 0.7rem;
+        border-radius: 0.4rem;
+        margin-top: 0.3rem;
+        max-width: 90%;
+    }
+
+    &__file-icon {
+        flex-shrink: 0;
+        color: $accent-alt;
+    }
+
+    &__filename {
+        font-size: 0.775rem;
+        color: $text-primary;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 170px;
+    }
+
+    &__filesize {
+        font-size: 0.7rem;
+        color: $text-muted;
+        flex-shrink: 0;
+    }
+
+    // Action button
+    &__change-btn {
+        background: none;
+        border: none;
+        color: $accent-alt;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-decoration: underline;
+        cursor: pointer;
+        margin-top: 0.35rem;
+        padding: 0.15rem 0.4rem;
+        transition: color 0.15s, opacity 0.15s;
+
+        &:hover {
+            color: $accent;
+            opacity: 0.9;
+        }
+    }
+}
+
+// Accessibility: Respect reduced motion settings
+@media (prefers-reduced-motion: reduce) {
+    .dropzone,
+    .dropzone__icon,
+    .dropzone__icon--floating,
+    .dropzone__icon--bounce,
+    .dropzone__spinner,
+    .dropzone__success-icon,
+    .dropzone--idle,
+    .dropzone--dragging,
+    .dropzone--error {
+        animation: none !important;
+        transition: none !important;
+        transform: none !important;
     }
 }
 
